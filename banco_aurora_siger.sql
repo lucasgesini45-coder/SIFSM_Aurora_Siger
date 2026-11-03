@@ -1,11 +1,4 @@
 
-
-SET SERVEROUTPUT ON
-WHENEVER SQLERROR CONTINUE
-
--- ---------------------------------------------------------------------
--- 1. LIMPEZA (pode rodar varias vezes)
--- ---------------------------------------------------------------------
 BEGIN
   FOR t IN (SELECT table_name FROM user_tables
             WHERE table_name IN ('RECOMENDACAO_IA','REGRESSAO_RESULTADO',
@@ -16,7 +9,7 @@ END;
 /
 
 -- ---------------------------------------------------------------------
--- 2. TABELA
+-- 2. TABELAS
 -- ---------------------------------------------------------------------
 
 CREATE TABLE simulacao (
@@ -34,6 +27,7 @@ CREATE TABLE simulacao (
   CONSTRAINT ck_sim_total CHECK (total_intervalos = dias * 24),
   CONSTRAINT ck_sim_status CHECK (status IN ('CRIADA','EXECUTADA','ANALISADA'))
 );
+
 
 CREATE TABLE intervalo_horario (
   id               NUMBER GENERATED ALWAYS AS IDENTITY,
@@ -60,6 +54,7 @@ CREATE TABLE intervalo_horario (
 );
 
 CREATE INDEX ix_intervalo_sim_dia ON intervalo_horario (simulacao_id, dia);
+
 
 CREATE TABLE regressao_resultado (
   id               NUMBER GENERATED ALWAYS AS IDENTITY,
@@ -133,7 +128,7 @@ BEGIN
     v_ger  := ROUND(5 * v_seno * v_fator, 3);
     v_temp := ROUND(22 + 6 * SIN(PI * (v_hora - 9) / 12), 2);
 
-    
+    -- consumo: base + pico noturno (18h-22h) + pequena variacao
     v_con := 2 + MOD(i, 3) * 0.1;
     IF v_hora BETWEEN 18 AND 22 THEN
       v_con := v_con + 1.5;
@@ -168,15 +163,15 @@ COMMIT;
 -- ---------------------------------------------------------------------
 -- 4. VALIDACAO (conferir se tudo foi criado corretamente)
 -- ---------------------------------------------------------------------
-PROMPT === Tabelas criadas ===
+-- === Tabelas criadas ===
 SELECT table_name FROM user_tables
 WHERE table_name IN ('SIMULACAO','INTERVALO_HORARIO','REGRESSAO_RESULTADO','RECOMENDACAO_IA')
 ORDER BY table_name;
 
-PROMPT === Total de intervalos (esperado: 168) ===
+-- === Total de intervalos (esperado: 168) ===
 SELECT COUNT(*) AS total_intervalos FROM intervalo_horario;
 
-PROMPT === Resumo por dia (7 linhas, 24 intervalos cada) ===
+-- === Resumo por dia (7 linhas, 24 intervalos cada) ===
 SELECT dia,
        COUNT(*)                  AS intervalos,
        ROUND(SUM(geracao_kwh),2) AS geracao_kwh,
@@ -186,7 +181,7 @@ FROM intervalo_horario
 GROUP BY dia
 ORDER BY dia;
 
-PROMPT === Constraints ===
+-- === Constraints ===
 SELECT table_name, constraint_name, constraint_type
 FROM user_constraints
 WHERE table_name IN ('SIMULACAO','INTERVALO_HORARIO','REGRESSAO_RESULTADO','RECOMENDACAO_IA')
