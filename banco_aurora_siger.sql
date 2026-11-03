@@ -1,4 +1,9 @@
 
+
+-- ---------------------------------------------------------------------
+-- 1. LIMPEZA
+-- ---------------------------------------------------------------------
+
 BEGIN
   FOR t IN (SELECT table_name FROM user_tables
             WHERE table_name IN ('RECOMENDACAO_IA','REGRESSAO_RESULTADO',
