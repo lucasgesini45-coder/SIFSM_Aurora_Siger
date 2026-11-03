@@ -1,23 +1,88 @@
+"""Menu principal do SIFSM Aurora Siger."""
+from pathlib import Path
+
+ARQUIVO_CSV = Path(__file__).resolve().parent / "dados_aurora_siger.csv"
+
+
+def pausar():
+    input("\nPressione ENTER para continuar...")
+
 
 def menu_submenu(titulo, opcoes):
+    """Menu para funcionalidades ainda não implementadas."""
     while True:
         print(f"\n===== {titulo.upper()} =====")
-
         for codigo, descricao in opcoes.items():
             print(f"{codigo}. {descricao}")
-
         print("0. Voltar")
-
         opcao = input("Escolha uma opção: ").strip()
-
         if opcao == "0":
-            break
-
+            return
         if opcao in opcoes:
             print(f"\n{opcoes[opcao]}: funcionalidade em desenvolvimento.")
-            input("Pressione ENTER para continuar...")
+            pausar()
         else:
             print("Opção inválida.")
+
+
+def carregar_dados():
+    import pandas as pd
+
+    if not ARQUIVO_CSV.is_file() or ARQUIVO_CSV.stat().st_size == 0:
+        raise FileNotFoundError("CSV ausente ou vazio. Execute primeiro a simulação.")
+    return pd.read_csv(ARQUIVO_CSV)
+
+
+def menu_simulacao():
+    from src.simulation import gerar_simulacao, exportar_csv
+    from src.regression import calcular_regressao
+
+    while True:
+        print("\n===== SIMULAÇÃO E ANÁLISES =====")
+        print("1. Executar simulação de 168 horas")
+        print("2. Consultar resultados do CSV")
+        print("3. Executar regressão linear")
+        print("0. Voltar")
+        opcao = input("Escolha uma opção: ").strip()
+        if opcao == "0":
+            return
+        try:
+            if opcao == "1":
+                dados = gerar_simulacao(168)
+                exportar_csv(dados, ARQUIVO_CSV)
+                print(f"Simulação concluída: {len(dados)} intervalos salvos em {ARQUIVO_CSV.name}.")
+                print(f"Geração total: {dados['geracao_kw'].sum():.2f} kWh")
+                print(f"Consumo total: {dados['consumo_kw'].sum():.2f} kWh")
+                print(f"Intervalos com alerta: {int(dados['alerta'].sum())}")
+                print("Observação: o CSV é independente do banco Oracle.")
+            elif opcao == "2":
+                dados = carregar_dados()
+                print(f"Registros: {len(dados)}")
+                print(dados.tail(10).to_string(index=False))
+            elif opcao == "3":
+                dados = carregar_dados()
+                resultado = calcular_regressao(dados)
+                print("\n===== REGRESSÃO LINEAR =====")
+                for chave, valor in resultado.items():
+                    print(f"{chave}: {valor}")
+                print("Os resultados não são gravados automaticamente no Oracle.")
+            else:
+                print("Opção inválida.")
+                continue
+        except (FileNotFoundError, ValueError, OSError) as erro:
+            print(f"Falha: {erro}")
+        pausar()
+
+
+def abrir_ia():
+    try:
+        from ia.ia_agentes import menu_ia
+    except ImportError as erro:
+        print(f"Não foi possível carregar a IA: {erro}")
+        print("Confira se instalou as dependências de requirements.txt.")
+        pausar()
+        return
+    menu_ia()
 
 
 def main():
@@ -29,52 +94,31 @@ def main():
         print("4. Relatórios")
         print("5. Configurações")
         print("0. Sair")
-
         opcao = input("Escolha uma opção: ").strip()
-
-        match opcao:
-            case "1":
-                menu_submenu("Gestão de dados", {
-                    "1": "Cadastrar registro",
-                    "2": "Consultar registros",
-                    "3": "Atualizar registro",
-                    "4": "Excluir registro",
-                })
-
-            case "2":
-                menu_submenu("Simulação e análises", {
-                    "1": "Executar simulação de 168 horas",
-                    "2": "Consultar resultados",
-                    "3": "Executar regressão",
-                })
-
-            case "3":
-                menu_submenu("Inteligência artificial", {
-                    "1": "Fazer uma pergunta",
-                    "2": "Analisar resultados",
-                    "3": "Verificar status da IA",
-                })
-
-            case "4":
-                menu_submenu("Relatórios", {
-                    "1": "Visualizar resumo",
-                    "2": "Consultar histórico",
-                    "3": "Exportar dados para CSV",
-                })
-
-            case "5":
-                menu_submenu("Configurações", {
-                    "1": "Verificar conexão Oracle",
-                    "2": "Consultar configurações",
-                    "3": "Informações do sistema",
-                })
-
-            case "0":
-                print("Encerrando o SIFSM Aurora Siger...")
-                break
-
-            case _:
-                print("Opção inválida. Tente novamente.")
+        if opcao == "1":
+            menu_submenu("Gestão de dados", {
+                "1": "Cadastrar registro", "2": "Consultar registros",
+                "3": "Atualizar registro", "4": "Excluir registro"
+            })
+        elif opcao == "2":
+            menu_simulacao()
+        elif opcao == "3":
+            abrir_ia()
+        elif opcao == "4":
+            menu_submenu("Relatórios", {
+                "1": "Visualizar resumo", "2": "Consultar histórico",
+                "3": "Exportar dados para CSV"
+            })
+        elif opcao == "5":
+            menu_submenu("Configurações", {
+                "1": "Verificar conexão Oracle", "2": "Consultar configurações",
+                "3": "Informações do sistema"
+            })
+        elif opcao == "0":
+            print("Encerrando o SIFSM Aurora Siger...")
+            return
+        else:
+            print("Opção inválida. Tente novamente.")
 
 
 if __name__ == "__main__":
