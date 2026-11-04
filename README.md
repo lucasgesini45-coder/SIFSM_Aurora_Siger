@@ -261,6 +261,14 @@ A IA usa funções com consultas SQL predefinidas para buscar números no Oracle
 
 **Integração ainda necessária:** estabelecer um contrato de campos/unidades entre os resultados da simulação CSV e as tabelas Oracle, implementar gravação transacional e validar leituras da IA sobre os mesmos dados produzidos pela simulação.
 
+### 8.2 Apresentação no terminal
+
+O submenu de inteligência artificial apresenta as opções em lista vertical, separa respostas por agente, destaca alertas, recomendações e validação humana. O status do Oracle e o tracing da sessão são mostrados em seções para facilitar a demonstração do projeto.
+
+Após cada operação, o sistema solicita **ENTER para voltar ao menu**; opções vazias não executam ações. O histórico mostra as últimas dez mensagens e os últimos vinte eventos de tracing, mantendo o histórico em memória para a sessão atual. Os textos persistidos no Oracle não são alterados pela formatação de exibição.
+
+**Nota:** esta melhoria é visual e não altera o classificador, as regras dos agentes, as consultas SQL ou os critérios de segurança. A conexão Oracle deve ser configurada no PowerShell **antes** de executar o aplicativo.
+
 ## 9. Estruturas de dados e arquitetura computacional
 
 ### 9.1 Estruturas
