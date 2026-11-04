@@ -348,6 +348,14 @@ O vídeo deve demonstrar ou explicar, de forma compatível com o que estiver imp
 
 **Antes de compactar:** testar a instalação em ambiente limpo, remover segredos, incluir arquivos necessários, preencher o relatório e o link do vídeo, revisar os nomes exigidos e excluir caches (\`__pycache__\`), ambientes virtuais e arquivos temporários do pacote final.
 
+### 12.1 Menus de relatórios e configurações (nova integração)
+
+O menu **4 — Relatórios** permite consultar um resumo energético do CSV local, visualizar alertas e exportar um resumo por dia para `relatorios/resumo_energetico_por_dia.csv`. A consulta ao histórico no Oracle apresenta até dez simulações existentes no schema, quando a conexão estiver configurada. É uma operação **somente de leitura** e não sincroniza automaticamente o CSV com o banco.
+
+O menu **5 — Configurações** permite testar a conexão Oracle (consulta `SELECT 1 FROM dual`), verificar quais variáveis de ambiente foram configuradas sem expor senhas, consultar informações do sistema e conferir a presença de arquivos e bibliotecas. Essa checagem não substitui os testes de execução.
+
+Os dois menus estão conectados a `src/reports.py` e `src/system_status.py`. A opção **1 — Gestão de dados** continua reservada para o CRUD do integrante responsável, sem alterações até a entrega. O conteúdo foi adicionado em branch de integração e requer validação local com o Oracle.
+
 ## 13. Próximos passos da equipe
 
 - [ ] Confirmar com o responsável pelo banco se o Oracle já foi implantado.
