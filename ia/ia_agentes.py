@@ -334,75 +334,189 @@ def processar(pergunta):
     return resposta
 
 
-# webhook simulado
+# ---------------------------------------------------------------------
+# Interface de terminal: somente apresentação. Os cálculos e a IA não mudam.
+# ---------------------------------------------------------------------
+import re
+import textwrap
+
+LARGURA = 76
+
+
+def linha():
+    print("-" * LARGURA)
+
+
+def titulo(texto):
+    print()
+    print("=" * LARGURA)
+    print(f"  {texto.upper()}")
+    print("=" * LARGURA)
+
+
+def secao(texto):
+    print()
+    print(f"  {texto.upper()}")
+    linha()
+
+
+def mensagem(texto, recuo=2):
+    """Quebra linhas longas sem cortar palavras, respeitando quebras existentes."""
+    prefixo = " " * recuo
+    for trecho in str(texto).splitlines():
+        if not trecho.strip():
+            print()
+        else:
+            print(textwrap.fill(
+                trecho.strip(), width=LARGURA,
+                initial_indent=prefixo, subsequent_indent=prefixo
+            ))
+
+
+def resposta_formatada(resposta):
+    """Exibe a resposta original organizada por agente e categoria."""
+    titulo("Resposta da inteligência artificial")
+    for bloco in str(resposta).splitlines():
+        parte = bloco.strip()
+        if not parte:
+            continue
+        match = re.match(r"^\[Agente ([^\]]+)\]\s*(.*)$", parte)
+        if match:
+            secao("Agente " + match.group(1))
+            parte = match.group(2)
+        elif parte.startswith("Base de conhecimento:"):
+            secao("Base de conhecimento — exemplo")
+            parte = parte.split(":", 1)[1].strip()
+        elif parte.startswith("ℹ"):
+            secao("Validação humana")
+            parte = parte.lstrip("ℹ ").strip()
+
+        # Separar avisos das métricas, sem alterar os textos persistidos no Oracle.
+        partes = re.split(r"\s+(?=(?:ALERTA|RECOMENDAÇÃO):)", parte)
+        for item in partes:
+            if item.startswith("ALERTA:"):
+                secao("Atenção | Alerta")
+                mensagem(item[len("ALERTA:"):].strip())
+            elif item.startswith("RECOMENDAÇÃO:"):
+                secao("Recomendação")
+                mensagem(item[len("RECOMENDAÇÃO:"):].strip())
+            else:
+                mensagem(item)
+    print()
+
+
+def erro_amigavel(erro):
+    titulo("Não foi possível concluir a operação")
+    mensagem(str(erro))
+    mensagem("Verifique a conexão Oracle e tente novamente.")
+    print()
+
+
+def aguardar():
+    input("Pressione ENTER para voltar ao menu...")
+
+
+def apresentar_papel():
+    titulo("Papel, limites e segurança da IA")
+    secoes = [
+        ("Papel da IA",
+         "Interpreta perguntas e seleciona um agente especialista e uma consulta "
+         "pré-definida. Os números vêm do banco Oracle, não são inventados pela IA."),
+        ("Limitações",
+         "O triador foi treinado com poucos exemplos e pode errar. "
+         "Perguntas com baixa confiança exigem revisão humana."),
+        ("Segurança",
+         "Guardrails impedem algumas ações inseguras e consultas a dados "
+         "individuais. Nenhum texto livre de usuário é incorporado à consulta SQL."),
+        ("Auditoria",
+         "As respostas aceitas pelo fluxo são encaminhadas para registro em "
+         "RECOMENDACAO_IA. Falhas na gravação ficam registradas no tracing."),
+        ("Responsabilidade humana",
+         "Os agentes apenas sugerem. Nenhuma recomendação se transforma "
+         "automaticamente em ação na colônia.")
+    ]
+    for nome, texto in secoes:
+        secao(nome)
+        mensagem(texto)
+    print()
+
+
+# Webhook simulado: não realiza chamada externa ou notificação real.
 def simular_webhook(tipo, dia):
     perguntas = {
         "deficit_energia": "qual o saldo de energia do dia ",
         "irradiancia_baixa": "como esta a irradiancia do dia ",
     }
     pergunta = perguntas[tipo] + str(dia)
-    print(
-        f"\n[Nó 1: Webhook] evento '{tipo}' do dia {dia}\n[Nó 2: Evento vira pergunta] {pergunta}\n[Nó 3: Triador + agentes]"
-    )
-    print(atender(pergunta))
-    print("[Nó 4: Notificar operador humano] (simulado: e-mail/Slack)")
+    titulo("Webhook demonstrativo")
+    secao("1. Evento recebido")
+    mensagem(f"Tipo: {tipo} | Dia: {dia}")
+    secao("2. Pergunta gerada")
+    mensagem(pergunta)
+    secao("3. Processamento por agentes")
+    resposta_formatada(atender(pergunta))
+    secao("4. Encaminhamento simulado")
+    mensagem("Notificação ao operador humano: exemplo de fluxo e-mail/Slack. "
+             "Nenhuma notificação externa foi enviada.")
 
 
-def fazer_pergunta():  # 3.1
-    print(
-        "\nExemplos: 'qual o saldo de energia da semana?' | 'e a temperatura nesse dia?'  (/sair para voltar)"
-    )
+def fazer_pergunta():
+    titulo("Perguntar à IA")
+    mensagem("Exemplos: 'qual o saldo de energia da semana?' "
+             "ou 'como está a irradiância do dia 2?'")
+    mensagem("Digite /sair para voltar ao menu.")
     while True:
-        pergunta = input("\nVocê> ").strip()
-        if pergunta == "/sair":
-            break
-        if pergunta:
-            try:
-                print(atender(pergunta))
-            except ValueError as erro:
-                print("  ✖", erro)
+        pergunta = input("\nVocê > ").strip()
+        if pergunta.lower() == "/sair":
+            return
+        if not pergunta:
+            print("Digite uma pergunta ou /sair.")
+            continue
+        try:
+            resposta_formatada(atender(pergunta))
+        except ValueError as erro:
+            erro_amigavel(erro)
 
 
-def analisar_resultados():  # 3.2
+def analisar_resultados():
     sessao["sim"], sessao["dia"] = simulacao_atual(), None
-    print(f"\nAnálise da simulação '{sessao['sim']['nome']}':")
-    for area in agentes:
-        while area is not None:  # segue os handoffs
+    titulo("Análise geral da simulação")
+    mensagem(f"Simulação: {sessao['sim']['nome']} | Status: {sessao['sim']['status']}")
+    for area_inicial in agentes:
+        area = area_inicial
+        while area is not None:
             texto, proximo = agentes[area]("analise os resultados")
-            print(f"  [Agente {area}] {texto}")
+            resposta_formatada(f"[Agente {area}] {texto}")
             gravar_resposta(texto)
             area = proximo
-    print(
-        "  ℹ Respostas gravadas em recomendacao_ia. Requer validação de um operador humano."
-    )
+    secao("Auditoria")
+    mensagem("Os registros são enviados ao Oracle para auditoria. "
+             "Consulte o tracing para verificar se cada gravação ocorreu.")
+    mensagem("Recomendações exigem validação de um operador humano.")
 
 
-def verificar_status_ia():  # 3.3
-    print("\nSTATUS DA IA")
+def verificar_status_ia():
+    titulo("Status do sistema de IA")
     try:
         sim = simulacao_atual()
         n = rodar_sql(
             "SELECT COUNT(*) AS n FROM recomendacao_ia WHERE simulacao_id = :sim",
             {"sim": sim["id"]},
         )[0]["n"]
-        print(
-            f"  Oracle: OK | simulação '{sim['nome']}' ({sim['status']}) | respostas da IA gravadas: {int(n)}"
-        )
+        secao("Banco Oracle | Conectado")
+        mensagem(f"Simulação ativa: {sim['nome']}")
+        mensagem(f"Status da simulação: {sim['status']}")
+        mensagem(f"Registros de recomendação da IA: {int(n)}")
     except ValueError as erro:
-        print("  Oracle: FALHOU ->", erro)
-    print(
-        f"  Triador: {len(exemplos)} frases, áreas {', '.join(classificador.classes_)} | RAG: {len(documentos)} documentos"
-    )
+        secao("Banco Oracle | Falha")
+        mensagem(str(erro))
+        mensagem("Verifique ORACLE_USER, ORACLE_PASSWORD e ORACLE_DSN.")
+    secao("Classificador e base demonstrativa")
+    mensagem(f"Exemplos de treinamento: {len(exemplos)}")
+    mensagem(f"Categorias: {', '.join(classificador.classes_)}")
+    mensagem(f"Documentos de exemplo: {len(documentos)}")
+    print()
 
-
-texto_papel = """
-PAPEL DA IA: interpretar a linguagem da tripulação (triador) e escolher o especialista e a consulta
-  ao Oracle. Os números vêm do banco e de SQL fixo, não da IA.
-LIMITES: o triador aprendeu com poucos exemplos e pode errar; com confiança baixa passa para um humano.
-  Os agentes não executam ações: apenas sugerem.
-SEGURANÇA: guardrails bloqueiam ações inseguras e dados individuais da tripulação; o texto do usuário
-  nunca entra no SQL; toda resposta fica gravada em recomendacao_ia para auditoria.
-RESPONSABILIDADE HUMANA: nenhuma sugestão vira ação sem validação de um operador."""
 
 demo = [
     "qual o saldo de energia da semana?",
@@ -414,43 +528,75 @@ demo = [
 ]
 
 
+def demonstracao():
+    titulo("Demonstração automática")
+    for indice, pergunta in enumerate(demo, 1):
+        secao(f"Exemplo {indice} de {len(demo)}")
+        mensagem(f"Pergunta: {pergunta}")
+        resposta_formatada(atender(pergunta))
+
+
+def mostrar_historico():
+    titulo("Histórico da sessão")
+    historico = sessao["historico"]
+    if not historico:
+        mensagem("Nenhuma interação registrada nesta sessão.")
+    else:
+        mensagem(f"Mensagens registradas: {len(historico)}")
+        mensagem("Mostrando as últimas 10 mensagens.")
+        for papel, conteudo in historico[-10:]:
+            secao("Tripulante" if papel == "tripulante" else "Sistema")
+            # Não despejar respostas enormes: apresentação completa já é feita na conversa.
+            mensagem(conteudo)
+    secao("Tracing — últimos 20 eventos")
+    if not sessao["trace"]:
+        mensagem("Nenhum evento registrado.")
+    else:
+        mensagem(f"Total de eventos: {len(sessao['trace'])}")
+        for indice, evento in enumerate(sessao["trace"][-20:], 1):
+            mensagem(f"{indice:02d}. {evento}")
+    print()
+
+
 def menu_ia():
     while True:
-        print("""
-===== INTELIGÊNCIA ARTIFICIAL =====
-1. Fazer uma pergunta         5. Simular webhook (low-code)
-2. Analisar resultados        6. Histórico e tracing da sessão
-3. Verificar status da IA     7. Papel, limites e segurança da IA
-4. Demonstração automática    0. Voltar""")
+        titulo("Inteligência artificial | Aurora Siger")
+        print("  1. Fazer uma pergunta")
+        print("  2. Analisar resultados")
+        print("  3. Verificar status da IA e do Oracle")
+        print("  4. Demonstração automática")
+        print("  5. Simular webhook (low-code)")
+        print("  6. Histórico e tracing da sessão")
+        print("  7. Papel, limites e segurança da IA")
+        print("  0. Voltar ao menu principal")
+        linha()
         opcao = input("Escolha uma opção: ").strip()
-        try:
-            if opcao == "0":
-                break
-            elif opcao == "1":
-                fazer_pergunta()
-            elif opcao == "2":
-                analisar_resultados()
-            elif opcao == "3":
-                verificar_status_ia()
-            elif opcao == "4":
-                for pergunta in demo:
-                    print(f"\nVocê> {pergunta}\n{atender(pergunta)}")
-            elif opcao == "5":
-                simular_webhook("deficit_energia", 2)
+        if not opcao:
+            print("Nenhuma opção informada. Escolha um número de 0 a 7.")
+            continue
+        if opcao == "0":
+            return
+        acoes = {
+            "1": fazer_pergunta,
+            "2": analisar_resultados,
+            "3": verificar_status_ia,
+            "4": demonstracao,
+            "5": lambda: (
+                simular_webhook("deficit_energia", 2),
                 simular_webhook("irradiancia_baixa", 7)
-            elif opcao == "6":
-                print(
-                    "\nHISTÓRICO:",
-                    *[f"  {q}: {m.splitlines()[0]}" for q, m in sessao["historico"]],
-                    sep="\n",
-                )
-                print("\nTRACING:", *["  " + e for e in sessao["trace"]], sep="\n")
-            elif opcao == "7":
-                print(texto_papel)
-            else:
-                print("Opção inválida.")
+            ),
+            "6": mostrar_historico,
+            "7": apresentar_papel,
+        }
+        acao = acoes.get(opcao)
+        if not acao:
+            print("Opção inválida. Escolha um número de 0 a 7.")
+            continue
+        try:
+            acao()
         except ValueError as erro:
-            print("  ✖", erro)
+            erro_amigavel(erro)
+        aguardar()
 
 
 if __name__ == "__main__":
