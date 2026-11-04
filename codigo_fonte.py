@@ -105,15 +105,11 @@ def main():
         elif opcao == "3":
             abrir_ia()
         elif opcao == "4":
-            menu_submenu("Relatórios", {
-                "1": "Visualizar resumo", "2": "Consultar histórico",
-                "3": "Exportar dados para CSV"
-            })
+            from src.reports import menu_relatorios
+            menu_relatorios()
         elif opcao == "5":
-            menu_submenu("Configurações", {
-                "1": "Verificar conexão Oracle", "2": "Consultar configurações",
-                "3": "Informações do sistema"
-            })
+            from src.system_status import menu_configuracoes
+            menu_configuracoes()
         elif opcao == "0":
             print("Encerrando o SIFSM Aurora Siger...")
             return
