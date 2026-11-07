@@ -1,0 +1,15 @@
+# Credenciais locais: nunca versionar
+.env
+
+# Python
+__pycache__/
+*.py[cod]
+.venv/
+venv/
+.pytest_cache/
+
+# Editores / sistema
+.vscode/
+.idea/
+.DS_Store
+Thumbs.db
