@@ -36,6 +36,7 @@ def carregar_dados():
 def menu_simulacao():
     from src.simulation import gerar_simulacao, exportar_csv
     from src.regression import calcular_regressao
+    from src.terminal_views import menu_csv, mostrar_regressao, resumo_csv
 
     while True:
         print("\n===== SIMULAÇÃO E ANÁLISES =====")
@@ -51,22 +52,16 @@ def menu_simulacao():
             if opcao == "1":
                 dados = gerar_simulacao(168)
                 exportar_csv(dados, ARQUIVO_CSV)
-                print(f"Simulação concluída: {len(dados)} intervalos salvos em {ARQUIVO_CSV.name}.")
-                print(f"Geração total: {dados['geracao_kw'].sum():.2f} kWh")
-                print(f"Consumo total: {dados['consumo_kw'].sum():.2f} kWh")
-                print(f"Intervalos com alerta: {int(dados['alerta'].sum())}")
-                print("Observação: o CSV é independente do banco Oracle.")
+                print(f"CSV gerado: {ARQUIVO_CSV.name}")
+                resumo_csv(dados)
+                print("Consulte a opção 2 para visualizar os registros em páginas.")
             elif opcao == "2":
                 dados = carregar_dados()
-                print(f"Registros: {len(dados)}")
-                print(dados.tail(10).to_string(index=False))
+                menu_csv(dados)
             elif opcao == "3":
                 dados = carregar_dados()
                 resultado = calcular_regressao(dados)
-                print("\n===== REGRESSÃO LINEAR =====")
-                for chave, valor in resultado.items():
-                    print(f"{chave}: {valor}")
-                print("Os resultados não são gravados automaticamente no Oracle.")
+                mostrar_regressao(resultado)
             elif opcao == "4":
                 from datetime import date
                 from src.persistence_pipeline import persistir_simulacao
@@ -82,6 +77,7 @@ def menu_simulacao():
                 print(f"Intervalos: {resultado['intervalos']}")
                 print(f"R² do treinamento gravado no Oracle: {resultado['r2_treino_oracle']:.4f}")
                 print(f"R² de teste temporal (somente relatório local): {resultado['r2_teste_local']}")
+                resumo_csv(dados)
                 try:
                     exportar_csv(dados, ARQUIVO_CSV)
                     print(f"CSV local atualizado: {ARQUIVO_CSV.name}")
