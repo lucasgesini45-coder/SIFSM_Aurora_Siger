@@ -97,3 +97,31 @@ def test_falha_aborta_transacao(monkeypatch):
     with pytest.raises(RuntimeError, match="falha controlada"):
         persistir_simulacao(gerar_simulacao(), "Simulação teste")
     assert eventos == ["iniciar", "rollback"]
+
+
+@pytest.mark.parametrize("campo,valor,trecho", [
+    ("irradiancia_wm2", -1, "negativos"),
+    ("geracao_kw", -0.5, "negativos"),
+    ("consumo_kw", -1, "negativos"),
+    ("temperatura_c", 1000, "Temperatura"),
+    ("irradiancia_wm2", 100000, "Irradiância"),
+    ("geracao_kw", 10000000, "Geração"),
+    ("consumo_kw", 10000000, "Geração"),
+])
+def test_rejeita_medicoes_fora_do_esquema_oracle(campo, valor, trecho):
+    dados = gerar_simulacao()
+    dados.loc[0, campo] = valor
+    with pytest.raises(ValueError, match=trecho):
+        preparar_intervalos(dados)
+
+
+def test_menu_de_configuracao_reutiliza_status_do_banco(monkeypatch, capsys):
+    from src import database, system_status
+
+    monkeypatch.setattr(database, "verificar_conexao", lambda: {
+        "conectado": True, "versao": "26", "usuario": "TESTE", "erro": None
+    })
+    system_status.verificar_oracle()
+    saida = capsys.readouterr().out
+    assert "CONECTADO" in saida
+    assert "TESTE" in saida
