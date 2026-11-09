@@ -55,23 +55,53 @@ def _campo(nome):
     return valor
 
 
+def _formatar(valor, limite=70):
+    texto = str(valor).replace("\n", " ").replace("\r", " ")
+    if len(texto) > limite:
+        return texto[:limite - 3] + "..."
+    return texto
+
+
 def _mostrar(registros):
+    """Lista em páginas de até 10 registros; busca individual com campos em linhas."""
     if isinstance(registros, dict):
         registros = [registros]
     if not registros:
         print("  Nenhum registro encontrado.")
         return
-    for item in registros:
-        print("  " + " | ".join(f"{chave}={valor}" for chave, valor in item.items()))
+    total = len(registros)
+    for inicio in range(0, total, 10):
+        parte = registros[inicio:inicio + 10]
+        print(f"\n  Registros {inicio + 1}-{inicio + len(parte)} de {total}")
+        print("  " + "-" * 66)
+        for item in parte:
+            print(f"  ID {item.get('id', '-')} | " +
+                  " | ".join(f"{chave}: {_formatar(valor, 42)}"
+                             for chave, valor in item.items() if chave != "id"))
+        if inicio + 10 < total:
+            resposta = input("  ENTER para próxima página ou 0 para sair: ").strip()
+            if resposta == "0":
+                break
+
+
+def _mostrar_detalhe(registro):
+    if not registro:
+        print("  Nenhum registro encontrado.")
+        return
+    print("\n  Detalhes do registro:")
+    print("  " + "-" * 50)
+    for chave, valor in registro.items():
+        print(f"  {chave:<22}: {_formatar(valor, 160)}")
+
 
 
 def executar_acao(acao, definicao):
     pai = definicao.get("pai")
     if acao == "1":
-        argumentos = {_pai: _campo(_pai) for _pai in [pai]} if pai else {}
+        argumentos = {pai: _campo(pai)} if pai else {"limite": 30}
         _mostrar(definicao["listar"](**argumentos))
     elif acao == "2":
-        _mostrar(definicao["buscar"](_campo("id")))
+        _mostrar_detalhe(definicao["buscar"](_campo("id")))
     elif acao == "3":
         argumentos = {campo: _campo(campo) for campo in definicao["campos"]}
         if pai:
