@@ -42,6 +42,7 @@ def menu_simulacao():
         print("1. Executar simulação de 168 horas")
         print("2. Consultar resultados do CSV")
         print("3. Executar regressão linear")
+        print("4. Executar simulação e salvar no Oracle com regressão")
         print("0. Voltar")
         opcao = input("Escolha uma opção: ").strip()
         if opcao == "0":
@@ -66,11 +67,36 @@ def menu_simulacao():
                 for chave, valor in resultado.items():
                     print(f"{chave}: {valor}")
                 print("Os resultados não são gravados automaticamente no Oracle.")
+            elif opcao == "4":
+                from datetime import date
+                from src.persistence_pipeline import persistir_simulacao
+                nome = input("Nome único da simulação no Oracle: ").strip()
+                if not nome:
+                    raise ValueError("Informe um nome para a simulação.")
+                inicio_texto = input("Data inicial (AAAA-MM-DD, ENTER para hoje): ").strip()
+                inicio = date.fromisoformat(inicio_texto) if inicio_texto else date.today()
+                dados = gerar_simulacao(168)
+                resultado = persistir_simulacao(dados, nome, data_inicio=inicio)
+                print(f"Simulação #{resultado['simulacao_id']} e regressão "
+                      f"#{resultado['regressao_id']} gravadas no Oracle.")
+                print(f"Intervalos: {resultado['intervalos']}")
+                print(f"R² do treinamento gravado no Oracle: {resultado['r2_treino_oracle']:.4f}")
+                print(f"R² de teste temporal (somente relatório local): {resultado['r2_teste_local']}")
+                try:
+                    exportar_csv(dados, ARQUIVO_CSV)
+                    print(f"CSV local atualizado: {ARQUIVO_CSV.name}")
+                except OSError as erro:
+                    print(f"Oracle gravado; não foi possível exportar o CSV local: {erro}")
             else:
                 print("Opção inválida.")
                 continue
         except (FileNotFoundError, ValueError, OSError) as erro:
             print(f"Falha: {erro}")
+        except Exception as erro:
+            from src.database import ErroBanco
+            if not isinstance(erro, ErroBanco):
+                raise
+            print(f"Falha na persistência Oracle: {erro}")
         pausar()
 
 
@@ -96,10 +122,8 @@ def main():
         print("0. Sair")
         opcao = input("Escolha uma opção: ").strip()
         if opcao == "1":
-            menu_submenu("Gestão de dados", {
-                "1": "Cadastrar registro", "2": "Consultar registros",
-                "3": "Atualizar registro", "4": "Excluir registro"
-            })
+            from src.cli_data import menu_gestao
+            menu_gestao()
         elif opcao == "2":
             menu_simulacao()
         elif opcao == "3":
