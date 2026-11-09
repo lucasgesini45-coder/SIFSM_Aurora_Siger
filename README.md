@@ -364,3 +364,16 @@ Projeto acadêmico de **Ciência da Computação — FIAP**, desenvolvido no con
 <img src="https://capsule-render.vercel.app/api?type=waving&height=110&section=footer&color=0:0D9488,50:15324A,100:0B1220" width="100%" alt="Rodapé" />
 
 </div>
+
+---
+
+## Circuito lógico e arquitetura computacional (Fase 7)
+
+O menu principal agora possui a opção **6 — Circuitos lógicos e arquitetura**, que permite testar em Python a expressão booleana `Alerta = (A AND B) OR C`, visualizar as oito combinações da tabela verdade e explicar as camadas do sistema.
+
+- `src/logic_circuit.py`: demonstração interativa da lógica em Python, sem necessidade de hardware.
+- `circuito/sifsm_alerta_energetico.ino`: sketch C++ para Arduino Uno/Tinkercad com botões D2/D3/D4 (INPUT_PULLUP), LED D8 com resistor 220 Ω, buzzer D9 e estados no Monitor Serial.
+- `docs/arquitetura_computacional.md`: documentação da CPU, aceleradores, memória, processamento, armazenamento, sustentabilidade e limitações.
+- `tests/test_logic_circuit.py`: validação automatizada da regra booleana.
+
+O circuito no Tinkercad ainda precisa ser montado e testado e **não existe comunicação serial Arduino–Python implementada**. O sketch e o menu Python demonstram a mesma regra de forma independente. A opção 6 não altera as rotinas de Oracle, CSV, regressão ou IA.

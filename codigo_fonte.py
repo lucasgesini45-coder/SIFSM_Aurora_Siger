@@ -115,6 +115,7 @@ def main():
         print("3. Inteligência artificial")
         print("4. Relatórios")
         print("5. Configurações")
+        print("6. Circuitos lógicos e arquitetura")
         print("0. Sair")
         opcao = input("Escolha uma opção: ").strip()
         if opcao == "1":
@@ -130,6 +131,9 @@ def main():
         elif opcao == "5":
             from src.system_status import menu_configuracoes
             menu_configuracoes()
+        elif opcao == "6":
+            from src.logic_circuit import menu_alerta
+            menu_alerta()
         elif opcao == "0":
             print("Encerrando o SIFSM Aurora Siger...")
             return
