@@ -9,30 +9,20 @@ RAIZ = Path(__file__).resolve().parents[1]
 
 
 def verificar_oracle():
+    """Usa a mesma configuração .env e a mesma conexão do CRUD."""
+    from src.database import verificar_conexao
+
     print("\n===== CONEXÃO ORACLE =====")
-    campos = ("ORACLE_USER", "ORACLE_PASSWORD", "ORACLE_DSN")
-    ausentes = [campo for campo in campos if not os.environ.get(campo)]
-    if ausentes:
-        print("  Não configurado neste terminal.")
-        print("  Variáveis ausentes:", ", ".join(ausentes))
-        return
-    try:
-        import oracledb
-        with oracledb.connect(
-            user=os.environ["ORACLE_USER"],
-            password=os.environ["ORACLE_PASSWORD"],
-            dsn=os.environ["ORACLE_DSN"],
-        ) as conexao:
-            with conexao.cursor() as cursor:
-                cursor.execute("SELECT 1 FROM dual")
-                cursor.fetchone()
-            print("  Status: CONECTADO")
-            print("  Versão do banco:", conexao.version)
-            print("  Usuário:", os.environ["ORACLE_USER"])
-            # O endereço e a senha não são exibidos.
-    except Exception as erro:
-        print("  Falha ao conectar:", type(erro).__name__)
-        print("  Verifique a rede, as credenciais e o serviço Oracle.")
+    resultado = verificar_conexao()
+    if resultado["conectado"]:
+        print("  Status: CONECTADO")
+        print("  Versão do banco:", resultado["versao"])
+        print("  Usuário:", resultado["usuario"])
+    else:
+        print("  Status: FALHA")
+        print("  Diagnóstico:", resultado["erro"])
+    print("  A senha e o DSN não são exibidos.")
+
 
 
 def consultar_configuracoes():
@@ -42,9 +32,16 @@ def consultar_configuracoes():
     print("  Pasta do projeto:", RAIZ)
     print("  Fonte da simulação: CSV local")
     print("  Fonte da IA: Oracle, quando configurado")
-    print("  Oracle user configurado:", "SIM" if os.environ.get("ORACLE_USER") else "NÃO")
-    print("  Oracle senha configurada:", "SIM" if os.environ.get("ORACLE_PASSWORD") else "NÃO")
-    print("  Oracle DSN configurado:", "SIM" if os.environ.get("ORACLE_DSN") else "NÃO")
+    from src.config import ErroConfiguracao, obter_config
+    try:
+        config = obter_config()
+        print("  Oracle configurado: SIM (arquivo .env ou ambiente)")
+        print("  Usuário configurado: SIM" if config.usuario else "  Usuário configurado: NÃO")
+        print("  Senha configurada: SIM" if config.senha else "  Senha configurada: NÃO")
+        print("  Serviço/DSN configurado: SIM" if config.dsn else "  Serviço/DSN configurado: NÃO")
+    except ErroConfiguracao as erro:
+        print("  Oracle configurado: NÃO")
+        print("  Diagnóstico:", erro)
     print("  Senhas e valores de conexão são ocultados por segurança.")
 
 
@@ -54,7 +51,7 @@ def informacoes_sistema():
     print("  Protótipo acadêmico de simulação energética e análises")
     print("  Simulação: 168 horas, dados sintéticos")
     print("  IA: triador com agentes especializados e supervisão humana")
-    print("  Nota: o CSV da simulação não é gravado no Oracle automaticamente.")
+    print("  Nota: a opção 4 de Simulação grava explicitamente no Oracle.")
 
 
 def verificar_modulos():
@@ -62,6 +59,8 @@ def verificar_modulos():
     arquivos = [
         "codigo_fonte.py", "src/simulation.py", "src/regression.py",
         "ia/ia_agentes.py", "banco_aurora_siger.sql", "requirements.txt",
+        "src/config.py", "src/database.py", "src/repositories.py",
+        "src/persistence_pipeline.py", "src/cli_data.py",
     ]
     for nome in arquivos:
         ok = (RAIZ / nome).is_file()
