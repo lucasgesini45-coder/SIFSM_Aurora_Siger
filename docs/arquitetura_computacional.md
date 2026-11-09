@@ -4,7 +4,7 @@
 
 A arquitetura computacional do Sistema Integrado de Futuro Sustentável em Marte (SIFSM) deve sustentar a coleta de estados operacionais, a simulação energética, o armazenamento dos resultados e a análise assistida por IA. Seu propósito é manter decisões críticas simples e previsíveis, preservar a rastreabilidade e evitar consumo computacional desnecessário.
 
-**Situação atual:** o protótipo implementa a interface em Python, a simulação de 168 horas com NumPy/pandas, a regressão linear, agentes especializados baseados em classificação TF-IDF e regras, além de dados em CSV e persistência em Oracle. **O Arduino/Tinkercad e a comunicação serial descritos abaixo representam uma integração proposta, não uma comunicação física já validada**.
+**Situação atual:** o protótipo implementa a interface em Python, a simulação de 168 horas com NumPy/pandas, a regressão linear, agentes especializados baseados em classificação TF-IDF e regras, além de dados em CSV e persistência em Oracle. **A regra booleana está implementada em Python e no sketch C++ para Arduino. A montagem no Tinkercad e a comunicação serial Arduino–Python ainda não foram validadas**.
 
 ## 2. Arquitetura em camadas
 
@@ -26,13 +26,13 @@ flowchart TB
 
 ### Camada física e de controle
 
-Na simulação eletrônica planejada, o Arduino Uno recebe três entradas digitais por botões que representam consumo alto (A), módulo crítico (B) e falha (C). A lógica é:
+No sketch C++ incluído em `circuito/sifsm_alerta_energetico.ino`, o Arduino Uno recebe três entradas digitais por botões que representam consumo alto (A), módulo crítico (B) e falha (C). A lógica é:
 
 ```text
 Alerta = (A AND B) OR C
 ```
 
-Quando verdadeira, a CPU do microcontrolador ativa o LED e o buzzer. A decisão de alerta é local, sem depender de Oracle, rede ou IA. Isso favorece reação rápida e maior resiliência em caso de falha de comunicação. A montagem eletrônica e a integração serial precisam ser demonstradas separadamente antes de serem declaradas implementadas.
+Quando verdadeira, a CPU do microcontrolador ativa o LED e o buzzer. A decisão de alerta é local, sem depender de Oracle, rede ou IA. Isso favorece reação rápida e maior resiliência em caso de falha de comunicação. O comportamento lógico pode ser testado na opção 6 do menu Python. A montagem eletrônica no Tinkercad e a integração serial precisam de validação separada.
 
 ### Camada de processamento
 
@@ -51,7 +51,7 @@ Agentes especializados analisam indicadores de energia, ambiente e dados com con
 | Unidade | Papel técnico | Escolha no SIFSM |
 |---|---|---|
 | CPU (computador) | Execução sequencial e geral, interface Python, lógica, acesso a arquivos e Oracle | **Utilizada** no protótipo |
-| CPU do microcontrolador | Leitura de entradas digitais e execução de lógica booleana com baixa latência | **Proposta** na simulação com Arduino |
+| CPU do microcontrolador | Leitura de entradas digitais e execução de lógica booleana com baixa latência | **Sketch C++ disponível; montagem ainda não validada** |
 | GPU | Paralelismo massivo para grandes matrizes, gráficos complexos ou aprendizado profundo | **Não necessária** para 168 intervalos e regressão simples |
 | NPU / TPU | Aceleração de inferência de redes neurais em hardware especializado | **Não necessárias** para o triador TF-IDF e regressão logística |
 | ASIC | Circuito dedicado a tarefa fixa, eficiente para aplicações especializadas | **Referência conceitual**, não utilizado |
@@ -99,3 +99,13 @@ Essas são decisões e recomendações de arquitetura; o projeto **não mede con
 ## 9. Correspondência com o enunciado
 
 Esta seção cobre a parte conceitual de arquitetura de computadores: CPU, GPU, NPU, TPU, paralelismo, heterogeneidade, memória, largura de banda, gargalos e sustentabilidade. O circuito digital e sua demonstração prática pertencem também ao requisito específico de lógica booleana e automação embarcada.
+
+
+## 10. Implementação do alerta booleano no repositório
+
+- `src/logic_circuit.py`: avalia `(A and B) or C`, mostra as oito linhas da tabela verdade e permite testar entradas simuladas no terminal.
+- `circuito/sifsm_alerta_energetico.ino`: sketch Arduino Uno com botões em D2, D3 e D4 usando `INPUT_PULLUP`, LED em D8 (resistor de 220 Ω), buzzer em D9 e estados no Monitor Serial a 9600 baud.
+- `tests/test_logic_circuit.py`: valida as oito combinações de entradas e comportamentos básicos do menu.
+- No terminal, executar `python codigo_fonte.py` e escolher **6 → 1** para testar entradas, **6 → 2** para tabela verdade, **6 → 3** para explicação da arquitetura.
+
+**Limitação explícita:** a simulação em Python não recebe dados do Arduino, não altera a simulação energética de 168 intervalos e não aciona equipamentos. Para afirmar que a montagem funciona no Tinkercad, ainda é necessário inserir os componentes e sketch no simulador e registrar a evidência ou o link do circuito.
