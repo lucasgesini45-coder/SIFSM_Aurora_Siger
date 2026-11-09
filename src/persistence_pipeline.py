@@ -4,7 +4,7 @@ O CSV local e o esquema Oracle representam fontes distintas até esta gravação
 A regressão de teste pode ter R² negativo; o campo Oracle guarda o R² do
 ajuste no conjunto de treinamento, explicitamente identificado no retorno.
 """
-from datetime import date, datetime
+from datetime import date
 import numpy as np
 import pandas as pd
 
@@ -26,8 +26,21 @@ def preparar_intervalos(dados):
     horas = dados["hora"].tolist()
     if horas != list(range(168)):
         raise ValueError("Horas da simulação devem estar ordenadas de 0 a 167.")
-    if not np.isfinite(dados[list(COLUNAS)].to_numpy(dtype=float)).all():
+    try:
+        valores = dados[list(COLUNAS)].to_numpy(dtype=float)
+    except (TypeError, ValueError) as exc:
+        raise ValueError("Os campos numéricos da simulação devem conter números.") from exc
+    if not np.isfinite(valores).all():
         raise ValueError("Dados da simulação contêm valores inválidos.")
+    # Limites físicos e precisão das colunas NUMBER no esquema Oracle.
+    if (dados[["irradiancia_wm2", "geracao_kw", "consumo_kw"]].to_numpy(dtype=float) < 0).any():
+        raise ValueError("Irradiância, geração e consumo não podem ser negativos.")
+    if (valores[:, 1] < -999.99).any() or (valores[:, 1] > 999.99).any():
+        raise ValueError("Temperatura fora do intervalo suportado pelo Oracle.")
+    if (valores[:, 2] > 99999.99).any():
+        raise ValueError("Irradiância excede a precisão da coluna Oracle.")
+    if (valores[:, 3:5] > 9999999.999).any():
+        raise ValueError("Geração ou consumo excedem a precisão da coluna Oracle.")
     intervalos = []
     for _, item in dados.iterrows():
         intervalos.append({
@@ -65,7 +78,7 @@ def persistir_simulacao(dados, nome, data_inicio=None):
     r2_treino = calcular_r2_treino(dados, resultado)
     if not isinstance(nome, str) or not nome.strip():
         raise ValueError("Informe um nome para a simulação.")
-    inicio = data_inicio or date.today()
+    inicio = date.today() if data_inicio is None else data_inicio
     with transacao() as conexao:
         simulacao_id = repo.inserir_simulacao(
             nome.strip(), inicio, semente=42, status="CRIADA", conexao=conexao
