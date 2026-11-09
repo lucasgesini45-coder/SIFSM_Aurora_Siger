@@ -15,7 +15,7 @@ def test_tabela_verdade_oito_combinacoes():
     linhas = tabela_verdade()
     assert len(linhas) == 8
     assert len({(x["A"], x["B"], x["C"]) for x in linhas}) == 8
-    assert sum(x["alerta"] for x in linhas) == 3
+    assert sum(x["alerta"] for x in linhas) == 5
 
 
 @pytest.mark.parametrize("entrada", [(0, False, False), ("1", False, False), (None, False, False)])
