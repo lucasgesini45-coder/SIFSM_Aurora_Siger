@@ -41,34 +41,33 @@ def resumo_energetico():
 
 
 def historico_oracle():
-    """Consulta apenas metadados das últimas simulações do schema Oracle."""
-    import os
-    import oracledb
-
-    campos = ("ORACLE_USER", "ORACLE_PASSWORD", "ORACLE_DSN")
-    if any(not os.environ.get(c) for c in campos):
-        raise ValueError("Oracle não configurado neste terminal. Defina ORACLE_USER, ORACLE_PASSWORD e ORACLE_DSN.")
+    """Consulta as últimas simulações com a conexão compartilhada do sistema."""
+    from src.database import consultar, ErroBanco
     try:
-        with oracledb.connect(
-            user=os.environ["ORACLE_USER"],
-            password=os.environ["ORACLE_PASSWORD"],
-            dsn=os.environ["ORACLE_DSN"],
-        ) as conexao:
-            with conexao.cursor() as cursor:
-                cursor.execute(
-                    "SELECT id, nome, status, data_inicio FROM simulacao ORDER BY id DESC FETCH FIRST 10 ROWS ONLY"
-                )
-                linhas = cursor.fetchall()
-    except oracledb.Error as exc:
+        linhas = consultar(
+            "SELECT id, nome, status, data_inicio FROM simulacao "
+            "ORDER BY id DESC FETCH FIRST 10 ROWS ONLY"
+        )
+    except ErroBanco as exc:
         raise ValueError(f"Falha ao consultar o histórico Oracle: {exc}") from exc
     print("\n" + "=" * 65)
     print("  HISTÓRICO NO ORACLE (ÚLTIMAS 10 SIMULAÇÕES)")
     print("=" * 65)
     if not linhas:
         print("  Nenhuma simulação encontrada.")
-    for identificador, nome, status, data in linhas:
-        print(f"  #{identificador} | {nome} | {status} | {data}")
-    print("  Fonte: Oracle. Pode ser diferente da simulação CSV local.")
+    else:
+        for item in linhas:
+            data = item["data_inicio"]
+            data_fmt = data.strftime("%d/%m/%Y") if hasattr(data, "strftime") else str(data)
+            print(f"  #{item['id']:<6} {_encurtar(item['nome'], 30):<30} "
+                  f"{item['status']:<10} {data_fmt}")
+    print("  Fonte: Oracle. Pode ser diferente do CSV local.")
+
+
+def _encurtar(texto, limite):
+    texto = str(texto)
+    return texto if len(texto) <= limite else texto[:limite - 3] + "..."
+
 
 
 def exportar_relatorio():
