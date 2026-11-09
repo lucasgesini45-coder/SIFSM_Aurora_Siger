@@ -56,7 +56,7 @@ def _campo(nome):
 
 
 def _formatar(valor, limite=70):
-    texto = str(valor).replace("\\n", " ").replace("\\r", " ")
+    texto = str(valor).replace("\n", " ").replace("\r", " ")
     if len(texto) > limite:
         return texto[:limite - 3] + "..."
     return texto
@@ -72,7 +72,7 @@ def _mostrar(registros):
     total = len(registros)
     for inicio in range(0, total, 10):
         parte = registros[inicio:inicio + 10]
-        print(f"\\n  Registros {inicio + 1}-{inicio + len(parte)} de {total}")
+        print(f"\n  Registros {inicio + 1}-{inicio + len(parte)} de {total}")
         print("  " + "-" * 66)
         for item in parte:
             print(f"  ID {item.get('id', '-')} | " +
@@ -88,7 +88,7 @@ def _mostrar_detalhe(registro):
     if not registro:
         print("  Nenhum registro encontrado.")
         return
-    print("\\n  Detalhes do registro:")
+    print("\n  Detalhes do registro:")
     print("  " + "-" * 50)
     for chave, valor in registro.items():
         print(f"  {chave:<22}: {_formatar(valor, 160)}")
