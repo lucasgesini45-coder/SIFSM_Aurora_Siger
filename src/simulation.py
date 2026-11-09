@@ -26,7 +26,10 @@ def gerar_simulacao(horas=168):
         # Consumo base 12 kW, ocupação diurna +4 kW e ruído limitado.
         consumo = 12.0 + (4.0 if 8 <= h < 20 else 0.0) + rng.uniform(-1, 1)
         solar = max(0.0, np.sin(np.pi * (h + 0.5 - 6) / 12)) if 6 <= h < 18 else 0.0
-        geracao = 65.0 * solar * rng.uniform(0.9, 1.0) * (0.3 if tempestade else 1.0)
+        fator_solar = rng.uniform(0.9, 1.0) * (0.3 if tempestade else 1.0)
+        geracao = 65.0 * solar * fator_solar
+        irradiancia = 900.0 * solar * fator_solar
+        temperatura = 22.0 + 6.0 * np.sin(np.pi * (h - 9) / 12)
         # Intervalo de uma hora: energia (kWh) = potência média (kW) * 1 h.
         saldo = geracao - consumo
         inicio = energia
@@ -45,7 +48,7 @@ def gerar_simulacao(horas=168):
             energia -= descarga / EFICIENCIA
         energia = float(np.clip(energia, 0, CAPACIDADE_KWH))
         registros.append(dict(hora=hora, dia=dia, hora_dia=h,
-            tempestade=tempestade, geracao_kw=geracao, consumo_kw=consumo,
+            tempestade=tempestade, irradiancia_wm2=irradiancia, temperatura_c=temperatura, geracao_kw=geracao, consumo_kw=consumo,
             saldo_kwh=saldo, bateria_inicio_kwh=inicio, bateria_fim_kwh=energia,
             soc_pct=100 * energia / CAPACIDADE_KWH, carga_kwh=carga,
             descarga_kwh=descarga, perdas_kwh=perda, excedente_kwh=excedente,
